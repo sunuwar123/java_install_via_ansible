@@ -1,0 +1,73 @@
+---
+
+- name: Create a unix user group  ansible
+  become: yes
+  tags: app,groupcreate
+  group:
+    name: ansible
+    state: present
+
+- name: Create a unix user and map it to ansible group
+  become: yes
+  tags: app,usercreate
+  user: 
+    name: ansible
+    comment: "ansible user"
+    uid: 102
+    group: ansible
+    state: present
+
+- name: Create a JAVA_HOME directory
+  become: yes
+  tags: app
+  file: 
+    dest: "{{java_home}}"
+    mode: 0755 
+    owner: ansible
+    group: ansible
+    state: directory
+
+- name: copy the JDK file to JAVA_HOME directory
+  become: yes
+  become_user: ansible
+  tags: app,cpbinaries
+  copy: 
+    src: "{{item}}"
+    dest: "{{java_home}}"
+    mode: 0755
+  with_items: 
+    - "server-jre-8u191-linux-x64.tar.gz"
+
+- name: Install Java
+  become: yes
+  become_user: ansible
+  tags: installjava, app
+  shell: "tar -xzf server-jre*.tar.gz"
+  args: 
+    chdir: "{{java_home}}"
+    
+- name: Set JAVA_HOME
+  become: yes
+  lineinfile:
+      dest: /etc/environment
+      state: present
+      regexp: '^JAVA_HOME'
+      line: 'JAVA_HOME={{java_home}}/jdk1.8.0_191/bin'
+
+- name: Create a soft link
+  become: yes
+  tags: linkjava
+  shell: " ln -s {{java_home}}///jdk1.8.0_191/bin/java /usr/bin/java"
+  ignore_errors: true
+
+  
+- name: Validate Java
+  become: yes
+  become_user: ansible
+  tags: app,vjava
+  command: "java -version"
+  register: javaver
+
+- debug:
+    msg: " Java Version Found {{javaver.stderr}}"
+

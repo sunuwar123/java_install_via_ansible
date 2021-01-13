@@ -1,0 +1,7 @@
+---
+
+- name: Install Java
+  hosts: app
+  become: true
+  roles: 
+    - role: Java_install
